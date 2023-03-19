@@ -8,6 +8,13 @@ namespace GitPullJetBrainsSpaceRepos
 {
     internal class Program
     {
+        private enum MessageTypes
+        {
+            Information,
+            Success,
+            Failure
+        }
+        
         private static void Main()
         {
             string parentDirectory = Environment.GetEnvironmentVariable("GIT_PARENT_DIRECTORY", EnvironmentVariableTarget.User) ?? string.Empty;
@@ -17,6 +24,8 @@ namespace GitPullJetBrainsSpaceRepos
 
             DirectoryInfo parentDirInfo = new (parentDirectory);
             ProcessDirectory(parentDirInfo, gitPat, gitUser, gitEmail);
+            LogOutput("Press Any Key To Close", MessageTypes.Information);
+            Console.ReadLine();
         }
 
         private static void ProcessDirectory(DirectoryInfo directory, string gitPat, string gitUser, string gitEmail)
@@ -25,7 +34,7 @@ namespace GitPullJetBrainsSpaceRepos
 
             if (Directory.Exists(gitDirectory))
             {
-                Console.WriteLine($"Processing repository: {directory.Name}");
+                LogOutput($"Processing repository: {directory.Name}", MessageTypes.Information);
 
                 try
                 {
@@ -49,15 +58,18 @@ namespace GitPullJetBrainsSpaceRepos
                         FetchOptions = options
                     });
 
-                    Console.WriteLine(mergeResult.Status == MergeStatus.UpToDate
-                        ? $"No changes to pull for repository: {directory.Name}"
-                        : $"Successfully updated repository: {directory.Name}");
+                    if (mergeResult.Status == MergeStatus.UpToDate)
+                    {
+                        LogOutput($"No changes to pull for repository: {directory.Name}", MessageTypes.Information);
+                    }
+                    else
+                    {
+                        LogOutput($"Successfully updated repository: {directory.Name}", MessageTypes.Success);
+                    }
                 }
                 catch (Exception ex)
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"Error processing repository: {directory.Name}. {ex.Message}");
-                    Console.ResetColor();
+                    LogOutput($"Error processing repository: {directory.Name}. {ex.Message}", MessageTypes.Failure);
                 }
             }
             else
@@ -68,6 +80,27 @@ namespace GitPullJetBrainsSpaceRepos
                     ProcessDirectory(subDir, gitPat,gitUser, gitEmail);
                 }
             }
+        }
+
+        private static void LogOutput(string message, MessageTypes messageType)
+        {
+            switch (messageType)
+            {
+                case MessageTypes.Information :
+                    Console.ResetColor();
+                    break;
+                case MessageTypes.Success :
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    break;
+                case MessageTypes.Failure :
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    break;
+                default:
+                    Console.ResetColor();
+                    break;
+            }
+            Console.WriteLine(message);
+            Console.ResetColor();
         }
     }
 }
